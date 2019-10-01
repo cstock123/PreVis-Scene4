@@ -95,6 +95,9 @@ public:
 	//example data that might be useful when trying to compute bounds on multi-shape
 	vec3 gMin;
 
+	enum SceneType { SCENE_START, SCENE_MILES, SCENE_GWEN, SCENE_NOIR_BITE, SCENE_NOIR_PORTAL, SCENE_PIG, SCENE_MINECRAFT, SCENE_ALL };
+	SceneType currentScene = SCENE_START;
+
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
 		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -233,7 +236,68 @@ public:
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shaderManager->setCurrentShader(SIMPLEPROG);
-        renderSimpleProg(frametime);
+		switch (currentScene) {
+			case SCENE_MILES:
+				renderMilesScene(frametime);
+				break;
+			case SCENE_GWEN:
+				renderGwenScene(frametime);
+				break;
+			case SCENE_NOIR_BITE:
+				renderNoirBiteScene(frametime);
+				break;
+			case SCENE_NOIR_PORTAL:
+				renderNoirPortalScene(frametime);
+				break;
+			case SCENE_PIG:
+				renderPigScene(frametime);
+				break;
+			case SCENE_MINECRAFT:
+				renderMinecraftScene(frametime);
+				break;
+			case SCENE_ALL:
+				renderAllScene(frametime);
+				break;
+			default:
+        		renderSimpleProg(frametime);
+				break;
+		}
+	}
+
+	void nextScene() {
+		switch (currentScene) {
+			case SCENE_START:
+				currentScene = SCENE_MILES;
+				setupMilesScene();
+				break;
+			case SCENE_MILES:
+				currentScene = SCENE_GWEN;
+				setupGwenScene();
+				break;
+			case SCENE_GWEN:
+				currentScene = SCENE_NOIR_BITE;
+				setupNoirBiteScene();
+				break;
+			case SCENE_NOIR_BITE:
+				currentScene = SCENE_NOIR_PORTAL;
+				setupNoirPortalScene();
+				break;
+			case SCENE_NOIR_PORTAL:
+				currentScene = SCENE_PIG;
+				setupPigScene();
+				break;
+			case SCENE_PIG:
+				currentScene = SCENE_MINECRAFT;
+				setupMinecraftScene();
+				break;
+			case SCENE_MINECRAFT:
+				currentScene = SCENE_ALL;
+				setupAllScene();
+				break;
+			case SCENE_ALL:
+				// last scene?
+				break;
+		}
 	}
     
     void renderSimpleProg(float frametime) {
@@ -294,6 +358,69 @@ public:
 			obj->update();
 		}
 	}
+
+	vec3 milesPosition;
+	void setupMilesScene() {
+		// put models in their starting positions.
+		// variables can be declared in global scope for use in the render function, and initialized here.
+		// if you want to use physics, call physicsObjects.clear() then add your own physics objects.
+		milesPosition = vec3(0);
+	}
+
+	void renderMilesScene(float frametime) {
+		if (0 /* replace with end condition */) {
+			nextScene();
+		}
+		// see renderSimpleProg for reference
+	}
+
+	void setupGwenScene() {
+
+	}
+
+	void renderGwenScene(float frametime) {
+
+	}
+
+	void setupNoirBiteScene() {
+
+	}
+
+	void renderNoirBiteScene(float frametime) {
+
+	}
+
+	void setupNoirPortalScene() {
+
+	}
+
+	void renderNoirPortalScene(float frametime) {
+
+	}
+
+	void setupPigScene() {
+
+	}
+
+	void renderPigScene(float frametime) {
+
+	}
+
+	void setupMinecraftScene() {
+
+	}
+
+	void renderMinecraftScene(float frametime) {
+
+	}
+
+	void setupAllScene() {
+
+	}
+
+	void renderAllScene(float frametime) {
+		// Scene showing all spiders at once
+	}
 };
 
 int main(int argc, char *argv[])
@@ -322,6 +449,7 @@ int main(int argc, char *argv[])
 	application->init(resourceDir);
 	application->initGeom(resourceDir);
 	application->initPhysicsObjects();
+	application->nextScene();
 
 	auto lastTime = chrono::high_resolution_clock::now();
 	float accumulator = 0.0f;
