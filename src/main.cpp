@@ -96,7 +96,7 @@ public:
 	vec3 gMin;
 
 	enum SceneType { SCENE_START, SCENE_MILES, SCENE_GWEN, SCENE_NOIR_BITE, SCENE_NOIR_PORTAL, SCENE_PIG, SCENE_MINECRAFT, SCENE_ALL };
-	SceneType currentScene = SCENE_START;
+	SceneType currentScene = SCENE_NOIR_PORTAL;
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
@@ -403,7 +403,51 @@ public:
 	}
 
 	void renderPigScene(float frametime) {
-
+        shared_ptr<Program> simple = shaderManager->getCurrentShader();
+        
+        auto Model = make_shared<MatrixStack>();
+        
+        simple->bind();
+        // Apply perspective projection.
+        SetProjectionMatrix(simple);
+        SetViewMatrix(simple);
+        
+        // Demo of Bezier Spline
+        glm::vec3 position;
+        
+        if(!splinepath[0].isDone())
+        {
+            splinepath[0].update(frametime);
+            position = splinepath[0].getPosition();
+        } else {
+            splinepath[1].update(frametime);
+            position = splinepath[1].getPosition();
+        }
+        
+        // draw mesh
+        Model->pushMatrix();
+        Model->loadIdentity();
+        //"global" translate
+        Model->translate(position);
+        Model->pushMatrix();
+        Model->scale(vec3(0.5, 0.5, 0.5));
+        glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+        sphere->draw(simple);
+        Model->popMatrix();
+        Model->popMatrix();
+        // spider
+        Model->pushMatrix();
+        Model->loadIdentity();
+        Model->translate(vec3(0, 0, -1));
+        Model->scale(2);
+        Model->rotate(M_PI, YAXIS);
+        spider.draw(simple, Model);
+        Model->popMatrix();
+        
+        for (auto obj : physicsObjects) {
+            obj->draw(simple, Model);
+        }
+        simple->unbind();
 	}
 
 	void setupMinecraftScene() {
