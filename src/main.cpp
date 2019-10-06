@@ -411,14 +411,24 @@ public:
 
 	}
 
-	Spline noirCameraPath;
-	Spline noirSpiderPath;
+	Spline noirCameraPath[2];
+	Spline noirSpiderPath[2];
+	float detectiveRotation;
 	float tNoir;
+	vec3 cameraOffsetFromSpider;
+	vec3 noirPortalLocation;
+	float noirPortalScale;
 	void setupNoirBiteScene() {
-		vec3 handLocation = vec3(2.1, 0.1, -5.25);
-		noirCameraPath = Spline(vec3(0), vec3(3, 0, -2), handLocation, 2);
 		tNoir = 0;
-		noirSpiderPath = Spline(vec3(4, 0, -7), vec3(3, 2, -7), vec3(2, 0.3, -7), 1);
+		vec3 handLocation = vec3(2, 0.3, -7);
+		noirPortalLocation = handLocation + vec3(2, -2, -7);
+		cameraOffsetFromSpider = vec3(0, 0, 2);
+		noirCameraPath[0] = Spline(vec3(0), vec3(3, 0, -2), handLocation + cameraOffsetFromSpider, 2);
+		noirSpiderPath[0] = Spline(vec3(4, 0, -7), vec3(3, 2, -7), handLocation, 1);
+		noirSpiderPath[1] = Spline(vec3(2, 0.3, -7), vec3(2.5, 1, -7), noirPortalLocation, 2);
+		spider.location = noirSpiderPath[0].getPosition();
+		noirPortalScale = 0;
+		detectiveRotation = 0;
 	}
 
 	void renderNoirBiteScene(float frametime) {
@@ -432,19 +442,29 @@ public:
 
 		}
 		else if (tNoir < 3) {
-			noirCameraPath.update(frametime);
-			if (!noirCameraPath.isDone()) {
-				camera.eye = noirCameraPath.getPosition();
+			if (!noirCameraPath[0].isDone()) {
+				noirCameraPath[0].update(frametime);
+				camera.eye = noirCameraPath[0].getPosition();
 				camera.target = camera.eye + vec3(0, 0, -1);
 			}
 		}
 		else if (tNoir < 4) {
-			
+
 		}
 		else if (tNoir < 5) {
-			noirSpiderPath.update(frametime);
-			if (!noirSpiderPath.isDone()) {
-				spider.location = noirSpiderPath.getPosition();
+			if (!noirSpiderPath[0].isDone()) {
+				noirSpiderPath[0].update(frametime);
+				spider.location = noirSpiderPath[0].getPosition();
+			}
+		}
+		else if (tNoir < 5.5) {
+			noirPortalScale = (tNoir - 5) * 2;
+		}
+		else if (tNoir < 7.5) {
+			detectiveRotation += frametime * M_PI * 8;
+			if (!noirSpiderPath[1].isDone()) {
+				noirSpiderPath[1].update(frametime);
+				spider.location = noirSpiderPath[1].getPosition();
 			}
 		}
 
@@ -453,10 +473,22 @@ public:
 			SetViewMatrix(simple);
 			Model->pushMatrix();
 				Model->translate(vec3(0, -3, -7));
+				Model->rotate(detectiveRotation, vec3(0, 1, 0));
             	glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
 				detectiveModel->draw(simple);
 			Model->popMatrix();
-			spider.draw(simple, Model);
+			Model->pushMatrix();
+				Model->translate(spider.location);
+				Model->rotate(M_PI_2, vec3(0, 1, 0));
+				Model->translate(-spider.location);
+				spider.draw(simple, Model);
+			Model->popMatrix();
+			Model->pushMatrix();
+				Model->translate(noirPortalLocation);
+				Model->scale(noirPortalScale);
+            	glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+				sphere->draw(simple);
+			Model->popMatrix();
 		simple->unbind();
 	}
 
