@@ -79,6 +79,8 @@ public:
 	// Shape to be used (from  file) - modify to support multiple
 	shared_ptr<Shape> sphere;
 	shared_ptr<Shape> cube;
+	shared_ptr<Shape> detectiveModel;
+	shared_ptr<Shape> spiderNoirModel;
 
 	vector<shared_ptr<PhysicsObject>> physicsObjects;
 	Spider spider;
@@ -96,7 +98,7 @@ public:
 	vec3 gMin;
 
 	enum SceneType { SCENE_START, SCENE_MILES, SCENE_GWEN, SCENE_NOIR_BITE, SCENE_NOIR_PORTAL, SCENE_PIG, SCENE_MINECRAFT, SCENE_ALL };
-	SceneType currentScene = SCENE_START;
+	SceneType currentScene = SCENE_GWEN;
 
 	struct { 
 		vec3 eye = vec3(0);
@@ -179,6 +181,26 @@ public:
 			cube->createShape(TOshapes[0]);
 			cube->measure();
 			cube->init();
+		}
+
+		rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/detective.obj").c_str());
+		if (!rc) {
+			cerr << errStr << endl;
+		} else {
+			detectiveModel = make_shared<Shape>();
+			detectiveModel->createShape(TOshapes[0]);
+			detectiveModel->measure();
+			detectiveModel->init();
+		}
+
+		rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/spider-noir.obj").c_str());
+		if (!rc) {
+			cerr << errStr << endl;
+		} else {
+			spiderNoirModel = make_shared<Shape>();
+			spiderNoirModel->createShape(TOshapes[0]);
+			spiderNoirModel->measure();
+			spiderNoirModel->init();
 		}
 	}
 
@@ -389,12 +411,53 @@ public:
 
 	}
 
+	Spline noirCameraPath;
+	Spline noirSpiderPath;
+	float tNoir;
 	void setupNoirBiteScene() {
-
+		vec3 handLocation = vec3(2.1, 0.1, -5.25);
+		noirCameraPath = Spline(vec3(0), vec3(3, 0, -2), handLocation, 2);
+		tNoir = 0;
+		noirSpiderPath = Spline(vec3(4, 0, -7), vec3(3, 2, -7), vec3(2, 0.3, -7), 1);
 	}
 
 	void renderNoirBiteScene(float frametime) {
+		shaderManager->setCurrentShader(SIMPLEPROG);
+		shared_ptr<Program> simple = shaderManager->getCurrentShader();
+        auto Model = make_shared<MatrixStack>();
 
+		tNoir += frametime;
+
+		if (tNoir < 1) {
+
+		}
+		else if (tNoir < 3) {
+			noirCameraPath.update(frametime);
+			if (!noirCameraPath.isDone()) {
+				camera.eye = noirCameraPath.getPosition();
+				camera.target = camera.eye + vec3(0, 0, -1);
+			}
+		}
+		else if (tNoir < 4) {
+			
+		}
+		else if (tNoir < 5) {
+			noirSpiderPath.update(frametime);
+			if (!noirSpiderPath.isDone()) {
+				spider.location = noirSpiderPath.getPosition();
+			}
+		}
+
+		simple->bind();
+			SetProjectionMatrix(simple);
+			SetViewMatrix(simple);
+			Model->pushMatrix();
+				Model->translate(vec3(0, -3, -7));
+            	glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+				detectiveModel->draw(simple);
+			Model->popMatrix();
+			spider.draw(simple, Model);
+		simple->unbind();
 	}
 
 	void setupNoirPortalScene() {
