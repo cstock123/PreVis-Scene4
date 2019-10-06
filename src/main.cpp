@@ -98,6 +98,12 @@ public:
 	enum SceneType { SCENE_START, SCENE_MILES, SCENE_GWEN, SCENE_NOIR_BITE, SCENE_NOIR_PORTAL, SCENE_PIG, SCENE_MINECRAFT, SCENE_ALL };
 	SceneType currentScene = SCENE_START;
 
+	struct { 
+		vec3 eye = vec3(0);
+		vec3 target = vec3(0, 0, -1);
+		vec3 up = vec3(0, 1, 0);
+	} camera;
+
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
 		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -223,6 +229,7 @@ public:
     void SetViewMatrix(shared_ptr<Program> curShader) {
         auto View = make_shared<MatrixStack>();
         View->pushMatrix();
+		View->lookAt(camera.eye, camera.target, camera.up);
         glUniformMatrix4fv(curShader->getUniform("V"), 1, GL_FALSE, value_ptr(View->topMatrix()));
         View->popMatrix();
     }
