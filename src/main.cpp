@@ -79,6 +79,7 @@ public:
 	// Shape to be used (from  file) - modify to support multiple
 	shared_ptr<Shape> sphere;
 	shared_ptr<Shape> cube;
+    shared_ptr<Shape> gwen_spider;
 
 	vector<shared_ptr<PhysicsObject>> physicsObjects;
 	Spider spider;
@@ -180,6 +181,16 @@ public:
 			cube->measure();
 			cube->init();
 		}
+        
+        rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/gwen_spider.obj").c_str());
+        if (!rc) {
+            cerr << errStr << endl;
+        } else {
+            gwen_spider = make_shared<Shape>();
+            gwen_spider->createShape(TOshapes[0]);
+            gwen_spider->measure();
+            gwen_spider->init();
+        }
 	}
 
 	/**
@@ -386,7 +397,7 @@ public:
 	}
 
 	void renderGwenScene(float frametime) {
-
+        renderSimpleProg(frametime);
 	}
 
 	void setupNoirBiteScene() {
