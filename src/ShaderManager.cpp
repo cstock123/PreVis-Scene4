@@ -25,6 +25,7 @@
 
 void ShaderManager::initShaders() {
     shaderMap[SIMPLEPROG] = initSimpleProgShader();
+    shaderMap[GREYPROG] = initGreyProgShader();
 }
 
 shared_ptr<Program> ShaderManager::initSimpleProgShader() {
@@ -45,6 +46,27 @@ shared_ptr<Program> ShaderManager::initSimpleProgShader() {
     prog->addUniform("M");
     prog->addAttribute("vertPos");
     prog->addAttribute("vertNor");
+    
+    return prog;
+}
+
+shared_ptr<Program> ShaderManager::initGreyProgShader() {
+    std::shared_ptr<Program> prog = make_shared<Program>();
+    
+    prog->setVerbose(true);
+    prog->setShaderNames(resourceDirectory + "/shaders/grey_vert.glsl", resourceDirectory + "/shaders/grey_scale_frag.glsl");
+    
+    if (!prog->init()) {
+        cerr << "One or more shaders failed to compile... exiting!" << endl;
+        exit(1);
+    }
+    
+    prog->addUniform("P");
+    prog->addUniform("V");
+    prog->addUniform("M");
+    prog->addAttribute("vertPos");
+    prog->addAttribute("vertNor");
+    prog->addAttribute("vertTex");
     
     return prog;
 }
