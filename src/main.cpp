@@ -129,6 +129,8 @@ public:
     
     bool is_spider = false;
 
+	bool startPlayback = false;
+
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
 		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -145,6 +147,9 @@ public:
         if (key == GLFW_KEY_S && action == GLFW_PRESS) {
             is_spider = true;
         }
+		if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+			startPlayback = true;
+		}
 	}
 
 	void mouseCallback(GLFWwindow *window, int button, int action, int mods)
@@ -481,7 +486,9 @@ public:
         shared_ptr<Program> simple = shaderManager->getCurrentShader();
         auto Model = make_shared<MatrixStack>();
 
-		tMiles += frametime;
+		if (startPlayback) {
+			tMiles += frametime;
+		}
 		if (tMiles < 1) {
 
 		}
@@ -895,6 +902,10 @@ public:
             sphere->draw(simple);
             Model->popMatrix();
         }
+
+		if (tPig > 7) {
+			nextScene();
+		}
         
         simple->unbind();
 	}
@@ -904,15 +915,55 @@ public:
 	}
 
 	void renderMinecraftScene(float frametime) {
-
+		nextScene();
 	}
 
 	void setupAllScene() {
-
+		camera.eye = vec3(0);
+		camera.target = vec3(0, 0, -1);
 	}
 
 	void renderAllScene(float frametime) {
-		// Scene showing all spiders at once
+		shared_ptr<Program> simple = shaderManager->getCurrentShader();
+        auto Model = make_shared<MatrixStack>();
+
+		simple->bind();
+            // Apply perspective projection.
+            SetProjectionMatrix(simple);
+            SetViewMatrix(simple);
+			Model->pushMatrix();
+				Model->translate(vec3(-2, -4, -6));
+				Model->rotate(M_PI / 2 + M_PI / 4, vec3(0, 1, 0));
+                glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+				miles->draw(simple);
+			Model->popMatrix();
+
+			Model->pushMatrix();
+				Model->translate(vec3(-2, 0, -15));
+				Model->rotate(milesRotation, vec3(0, 1, 0));
+				Model->scale(15);
+                glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+				pigSpider.draw(simple, Model);
+			Model->popMatrix();
+
+			Model->pushMatrix();
+				Model->translate(vec3(6, 0, -15));
+                glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+				gwen_spider->draw(simple);
+			Model->popMatrix();
+		simple->unbind();
+
+		shaderManager->setCurrentShader(GREYPROG);
+        shared_ptr<Program> grey = shaderManager->getCurrentShader();
+		grey->bind();
+			SetProjectionMatrix(grey);
+            SetViewMatrix(grey);
+			Model->pushMatrix();
+				Model->translate(vec3(2, -4, -15));
+                glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+				noirSpiderPart->draw(simple);
+			Model->popMatrix();
+		grey->unbind();
 	}
 };
 
