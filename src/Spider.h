@@ -65,10 +65,10 @@ public:
 	float eyeDistances = eyeSize / 2; // distance between each eye
 
 	// ----------- mouth variables ------------- //
-	vec3 headToMouthPosition = vec3(0, 0, -headRadius);
-	float mouthRadius = eyeSize / 2;
-	float mouthWidth = 4 * eyeSize;
-	float fangHeight = mouthWidth / 2.0;
+    vec3 headToMouthPosition = vec3(0, 0, -headRadius);
+    float mouthRadius = eyeSize / 2;
+    float mouthWidth = 4 * eyeSize;
+    float fangHeight = mouthWidth / 2.0;
 	vec3 mouthLineScale = vec3(mouthWidth, mouthRadius, mouthRadius); // top line of mouth
 	vec3 mouthFangScale = vec3(mouthRadius, fangHeight, mouthRadius);
 
