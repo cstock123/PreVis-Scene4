@@ -1,6 +1,6 @@
 /*
  * Program 3 base code - includes modifications to shape and initGeom in preparation to load
- * multi shape objects 
+ * multi shape objects
  * CPE 471 Cal Poly Z. Wood + S. Sueda + I. Dunn
  */
 
@@ -24,17 +24,17 @@
  SPLINE INSTRUCTIONS
 
  1) Create a spline object, or an array of splines (for a more complex path)
- 2) Initialize the splines. I did this in initGeom in this example. There are 
-	two constructors for it, for order 2 and order 3 splines. The first uses
-	a beginning, intermediate control point, and ending. In the case of Bezier splines, 
-	the path is influenced by, but does NOT necessarily touch, the control point. 
-	There is a second constructor, for order 3 splines. These have two control points. 
-	Use these to create S-curves. The constructor also takes a duration of time that the 
-	path should take to be completed. This is in seconds. 
- 3) Call update(frametime) with the time between the frames being rendered. 
-	3a) Call isDone() and switch to the next part of the path if you are using multiple 
-	    paths or something like that. 
- 4) Call getPosition() to get the vec3 of where the current calculated position is. 
+ 2) Initialize the splines. I did this in initGeom in this example. There are
+    two constructors for it, for order 2 and order 3 splines. The first uses
+    a beginning, intermediate control point, and ending. In the case of Bezier splines,
+    the path is influenced by, but does NOT necessarily touch, the control point.
+    There is a second constructor, for order 3 splines. These have two control points.
+    Use these to create S-curves. The constructor also takes a duration of time that the
+    path should take to be completed. This is in seconds.
+ 3) Call update(frametime) with the time between the frames being rendered.
+    3a) Call isDone() and switch to the next part of the path if you are using multiple
+        paths or something like that.
+ 4) Call getPosition() to get the vec3 of where the current calculated position is.
  ***********************/
 
 #include <chrono>
@@ -72,115 +72,115 @@ class Application : public EventCallbacks
 
 public:
 
-	WindowManager * windowManager = nullptr;
+    WindowManager * windowManager = nullptr;
     
   ShaderManager * shaderManager;
 
-	// Shape to be used (from  file) - modify to support multiple
-	shared_ptr<Shape> sphere;
-	shared_ptr<Shape> cube;
+    // Shape to be used (from  file) - modify to support multiple
+    shared_ptr<Shape> sphere;
+    shared_ptr<Shape> cube;
     shared_ptr<Shape> gwen_spider;
 
-	vector<shared_ptr<PhysicsObject>> physicsObjects;
-	Spider spider;
+    vector<shared_ptr<PhysicsObject>> physicsObjects;
+    Spider spider;
 
-	// Two part path
+    // Two part path
   Spline splinepath[2];
 
-	// Contains vertex information for OpenGL
-	GLuint VertexArrayID;
+    // Contains vertex information for OpenGL
+    GLuint VertexArrayID;
 
-	// Data necessary to give our triangle to OpenGL
-	GLuint VertexBufferID;
+    // Data necessary to give our triangle to OpenGL
+    GLuint VertexBufferID;
 
-	//example data that might be useful when trying to compute bounds on multi-shape
-	vec3 gMin;
+    //example data that might be useful when trying to compute bounds on multi-shape
+    vec3 gMin;
 
-	enum SceneType { SCENE_START, SCENE_MILES, SCENE_GWEN, SCENE_NOIR_BITE, SCENE_NOIR_PORTAL, SCENE_PIG, SCENE_MINECRAFT, SCENE_ALL };
-	SceneType currentScene = SCENE_START;
+    enum SceneType { SCENE_START, SCENE_MILES, SCENE_GWEN, SCENE_NOIR_BITE, SCENE_NOIR_PORTAL, SCENE_PIG, SCENE_MINECRAFT, SCENE_ALL };
+    SceneType currentScene = SCENE_GWEN;
 
-	struct { 
-		vec3 eye = vec3(0);
-		vec3 target = vec3(0, 0, -1);
-		vec3 up = vec3(0, 1, 0);
-	} camera;
+    struct {
+        vec3 eye = vec3(0);
+        vec3 target = vec3(0, 0, -1);
+        vec3 up = vec3(0, 1, 0);
+    } camera;
 
-	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
-	{
-		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-		{
-			glfwSetWindowShouldClose(window, GL_TRUE);
-		}
-		if (key == GLFW_KEY_Z && action == GLFW_PRESS) {
-			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-		}
-		if (key == GLFW_KEY_Z && action == GLFW_RELEASE) {
-			glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-		}
-	}
+    void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+    {
+        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        {
+            glfwSetWindowShouldClose(window, GL_TRUE);
+        }
+        if (key == GLFW_KEY_Z && action == GLFW_PRESS) {
+            glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+        }
+        if (key == GLFW_KEY_Z && action == GLFW_RELEASE) {
+            glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+        }
+    }
 
-	void mouseCallback(GLFWwindow *window, int button, int action, int mods)
-	{
-		double posX, posY;
+    void mouseCallback(GLFWwindow *window, int button, int action, int mods)
+    {
+        double posX, posY;
 
-		if (action == GLFW_PRESS)
-		{
-			 glfwGetCursorPos(window, &posX, &posY);
-			 cout << "Pos X " << posX <<  " Pos Y " << posY << endl;
-		}
-	}
+        if (action == GLFW_PRESS)
+        {
+             glfwGetCursorPos(window, &posX, &posY);
+             cout << "Pos X " << posX <<  " Pos Y " << posY << endl;
+        }
+    }
 
-	void resizeCallback(GLFWwindow *window, int width, int height)
-	{
-		glViewport(0, 0, width, height);
-	}
+    void resizeCallback(GLFWwindow *window, int width, int height)
+    {
+        glViewport(0, 0, width, height);
+    }
 
-	void init(const std::string& resourceDirectory)
-	{
-		GLSL::checkVersion();
+    void init(const std::string& resourceDirectory)
+    {
+        GLSL::checkVersion();
 
-		// Set background color.
-		glClearColor(.12f, .34f, .56f, 1.0f);
-		// Enable z-buffer test.
-		glEnable(GL_DEPTH_TEST);
+        // Set background color.
+        glClearColor(.12f, .34f, .56f, 1.0f);
+        // Enable z-buffer test.
+        glEnable(GL_DEPTH_TEST);
 
         // create the Instance of ShaderManager which will initialize all shaders in its constructor
-		shaderManager = new ShaderManager(resourceDirectory);
-	}
+        shaderManager = new ShaderManager(resourceDirectory);
+    }
 
-	void initGeom(const std::string& resourceDirectory)
-	{
-		//EXAMPLE new set up to read one shape from one obj file - convert to read several
-		// Initialize mesh
-		// Load geometry
- 		// Some obj files contain material information.We'll ignore them for this assignment.
- 		vector<tinyobj::shape_t> TOshapes;
- 		vector<tinyobj::material_t> objMaterials;
- 		string errStr;
-		//load in the mesh and make the shape(s)
- 		bool rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/SmoothSphere.obj").c_str());
-		if (!rc) {
-			cerr << errStr << endl;
-		} else {
-			sphere = make_shared<Shape>();
-			sphere->createShape(TOshapes[0]);
-			sphere->measure();
-			sphere->init();
-		}
-		//read out information stored in the shape about its size - something like this...
-		//then do something with that information.....
-		gMin.x = sphere->min.x;
-		gMin.y = sphere->min.y;
+    void initGeom(const std::string& resourceDirectory)
+    {
+        //EXAMPLE new set up to read one shape from one obj file - convert to read several
+        // Initialize mesh
+        // Load geometry
+         // Some obj files contain material information.We'll ignore them for this assignment.
+         vector<tinyobj::shape_t> TOshapes;
+         vector<tinyobj::material_t> objMaterials;
+         string errStr;
+        //load in the mesh and make the shape(s)
+         bool rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/SmoothSphere.obj").c_str());
+        if (!rc) {
+            cerr << errStr << endl;
+        } else {
+            sphere = make_shared<Shape>();
+            sphere->createShape(TOshapes[0]);
+            sphere->measure();
+            sphere->init();
+        }
+        //read out information stored in the shape about its size - something like this...
+        //then do something with that information.....
+        gMin.x = sphere->min.x;
+        gMin.y = sphere->min.y;
 
-		rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/cube.obj").c_str());
-		if (!rc) {
-			cerr << errStr << endl;
-		} else {
-			cube = make_shared<Shape>();
-			cube->createShape(TOshapes[0]);
-			cube->measure();
-			cube->init();
-		}
+        rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/cube.obj").c_str());
+        if (!rc) {
+            cerr << errStr << endl;
+        } else {
+            cube = make_shared<Shape>();
+            cube->createShape(TOshapes[0]);
+            cube->measure();
+            cube->init();
+        }
         
         rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/gwen_spider.obj").c_str());
         if (!rc) {
@@ -191,42 +191,42 @@ public:
             gwen_spider->measure();
             gwen_spider->init();
         }
-	}
+    }
 
-	/**
-	 * Initialize objects with physics interactions here.
-	 * There are two types of colliders: spheres and meshes.
-	 * Note that spheres can collide with meshes and other spheres, but meshes can't collide with other meshes.
-	 */
-	void initPhysicsObjects() {
-		PhysicsObject::setCulling(false);
+    /**
+     * Initialize objects with physics interactions here.
+     * There are two types of colliders: spheres and meshes.
+     * Note that spheres can collide with meshes and other spheres, but meshes can't collide with other meshes.
+     */
+    void initPhysicsObjects() {
+        PhysicsObject::setCulling(false);
 
-		auto physicsBall = make_shared<PhysicsObject>(vec3(0, 0, -10), sphere, make_shared<ColliderSphere>(sphere->size.x / 2));
-		physicsBall->setMass(5);
-		physicsBall->setElasticity(0.5);
-		physicsBall->setFriction(0.25);
-		physicsObjects.push_back(physicsBall);
+        auto physicsBall = make_shared<PhysicsObject>(vec3(0, 0, -10), sphere, make_shared<ColliderSphere>(sphere->size.x / 2));
+        physicsBall->setMass(5);
+        physicsBall->setElasticity(0.5);
+        physicsBall->setFriction(0.25);
+        physicsObjects.push_back(physicsBall);
 
-		physicsBall = make_shared<PhysicsObject>(vec3(-1, -3, -10), sphere, make_shared<ColliderSphere>(sphere->size.x / 2));
-		physicsBall->setElasticity(0.5);
-		physicsBall->setFriction(0.25);
-		physicsObjects.push_back(physicsBall);
+        physicsBall = make_shared<PhysicsObject>(vec3(-1, -3, -10), sphere, make_shared<ColliderSphere>(sphere->size.x / 2));
+        physicsBall->setElasticity(0.5);
+        physicsBall->setFriction(0.25);
+        physicsObjects.push_back(physicsBall);
 
-		cube->findEdges(); // need to call this for shapes used as collision meshes
-		auto physicsCube = make_shared<PhysicsObject>(vec3(2, -4, -10), cube, make_shared<ColliderMesh>(cube));
-		physicsCube->setElasticity(0.5);
-		physicsCube->setFriction(0.25);
-		physicsCube->orientation = rotate(quat(1, 0, 0, 0), 45.0f, vec3(0, 1, 0));
-		physicsObjects.push_back(physicsCube);
+        cube->findEdges(); // need to call this for shapes used as collision meshes
+        auto physicsCube = make_shared<PhysicsObject>(vec3(2, -4, -10), cube, make_shared<ColliderMesh>(cube));
+        physicsCube->setElasticity(0.5);
+        physicsCube->setFriction(0.25);
+        physicsCube->orientation = rotate(quat(1, 0, 0, 0), 45.0f, vec3(0, 1, 0));
+        physicsObjects.push_back(physicsCube);
     
     // Give spider sphere to draw
-		spider.initialize(sphere);
+        spider.initialize(sphere);
     
-		// init splines
-		splinepath[0] = Spline(glm::vec3(-6,0,-5), glm::vec3(-1,-5,-5), glm::vec3(1, 5, -5), glm::vec3(2,0,-5), 5);
-		splinepath[1] = Spline(glm::vec3(2,0,-5), glm::vec3(3,-5,-5), glm::vec3(-0.25, 0.25, -5), glm::vec3(0,0,-5), 5);
-	
-	}
+        // init splines
+        splinepath[0] = Spline(glm::vec3(-6,0,-5), glm::vec3(-1,-5,-5), glm::vec3(1, 5, -5), glm::vec3(2,0,-5), 5);
+        splinepath[1] = Spline(glm::vec3(2,0,-5), glm::vec3(3,-5,-5), glm::vec3(-0.25, 0.25, -5), glm::vec3(0,0,-5), 5);
+    
+    }
     
     mat4 SetProjectionMatrix(shared_ptr<Program> curShader) {
         int width, height;
@@ -240,83 +240,83 @@ public:
     void SetViewMatrix(shared_ptr<Program> curShader) {
         auto View = make_shared<MatrixStack>();
         View->pushMatrix();
-		View->lookAt(camera.eye, camera.target, camera.up);
+        View->lookAt(camera.eye, camera.target, camera.up);
         glUniformMatrix4fv(curShader->getUniform("V"), 1, GL_FALSE, value_ptr(View->topMatrix()));
         View->popMatrix();
     }
 
-	void render(float frametime)
-	{
-		// Get current frame buffer size.
-		int width, height;
-		glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
-		glViewport(0, 0, width, height);
+    void render(float frametime)
+    {
+        // Get current frame buffer size.
+        int width, height;
+        glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
+        glViewport(0, 0, width, height);
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shaderManager->setCurrentShader(SIMPLEPROG);
-		switch (currentScene) {
-			case SCENE_MILES:
-				renderMilesScene(frametime);
-				break;
-			case SCENE_GWEN:
-				renderGwenScene(frametime);
-				break;
-			case SCENE_NOIR_BITE:
-				renderNoirBiteScene(frametime);
-				break;
-			case SCENE_NOIR_PORTAL:
-				renderNoirPortalScene(frametime);
-				break;
-			case SCENE_PIG:
-				renderPigScene(frametime);
-				break;
-			case SCENE_MINECRAFT:
-				renderMinecraftScene(frametime);
-				break;
-			case SCENE_ALL:
-				renderAllScene(frametime);
-				break;
-			default:
-        		renderSimpleProg(frametime);
-				break;
-		}
-	}
+        switch (currentScene) {
+            case SCENE_MILES:
+                renderMilesScene(frametime);
+                break;
+            case SCENE_GWEN:
+                renderGwenScene(frametime);
+                break;
+            case SCENE_NOIR_BITE:
+                renderNoirBiteScene(frametime);
+                break;
+            case SCENE_NOIR_PORTAL:
+                renderNoirPortalScene(frametime);
+                break;
+            case SCENE_PIG:
+                renderPigScene(frametime);
+                break;
+            case SCENE_MINECRAFT:
+                renderMinecraftScene(frametime);
+                break;
+            case SCENE_ALL:
+                renderAllScene(frametime);
+                break;
+            default:
+                renderSimpleProg(frametime);
+                break;
+        }
+    }
 
-	void nextScene() {
-		switch (currentScene) {
-			case SCENE_START:
-				currentScene = SCENE_MILES;
-				setupMilesScene();
-				break;
-			case SCENE_MILES:
-				currentScene = SCENE_GWEN;
-				setupGwenScene();
-				break;
-			case SCENE_GWEN:
-				currentScene = SCENE_NOIR_BITE;
-				setupNoirBiteScene();
-				break;
-			case SCENE_NOIR_BITE:
-				currentScene = SCENE_NOIR_PORTAL;
-				setupNoirPortalScene();
-				break;
-			case SCENE_NOIR_PORTAL:
-				currentScene = SCENE_PIG;
-				setupPigScene();
-				break;
-			case SCENE_PIG:
-				currentScene = SCENE_MINECRAFT;
-				setupMinecraftScene();
-				break;
-			case SCENE_MINECRAFT:
-				currentScene = SCENE_ALL;
-				setupAllScene();
-				break;
-			case SCENE_ALL:
-				// last scene?
-				break;
-		}
-	}
+    void nextScene() {
+        switch (currentScene) {
+            case SCENE_START:
+                currentScene = SCENE_MILES;
+                setupMilesScene();
+                break;
+            case SCENE_MILES:
+                currentScene = SCENE_GWEN;
+                setupGwenScene();
+                break;
+            case SCENE_GWEN:
+                currentScene = SCENE_NOIR_BITE;
+                setupNoirBiteScene();
+                break;
+            case SCENE_NOIR_BITE:
+                currentScene = SCENE_NOIR_PORTAL;
+                setupNoirPortalScene();
+                break;
+            case SCENE_NOIR_PORTAL:
+                currentScene = SCENE_PIG;
+                setupPigScene();
+                break;
+            case SCENE_PIG:
+                currentScene = SCENE_MINECRAFT;
+                setupMinecraftScene();
+                break;
+            case SCENE_MINECRAFT:
+                currentScene = SCENE_ALL;
+                setupAllScene();
+                break;
+            case SCENE_ALL:
+                // last scene?
+                break;
+        }
+    }
     
     void renderSimpleProg(float frametime) {
         shared_ptr<Program> simple = shaderManager->getCurrentShader();
@@ -328,17 +328,17 @@ public:
             SetProjectionMatrix(simple);
             SetViewMatrix(simple);
 
-			// Demo of Bezier Spline
-			glm::vec3 position;
+            // Demo of Bezier Spline
+            glm::vec3 position;
 
-			if(!splinepath[0].isDone())
-			{
-				splinepath[0].update(frametime);
-				position = splinepath[0].getPosition();
-			} else {
-				splinepath[1].update(frametime);
-				position = splinepath[1].getPosition();
-			}
+            if(!splinepath[0].isDone())
+            {
+                splinepath[0].update(frametime);
+                position = splinepath[0].getPosition();
+            } else {
+                splinepath[1].update(frametime);
+                position = splinepath[1].getPosition();
+            }
 
             // draw mesh
             Model->pushMatrix();
@@ -360,155 +360,171 @@ public:
                 spider.draw(simple, Model);
             Model->popMatrix();
 
-			for (auto obj : physicsObjects) {
-				obj->draw(simple, Model);
-			}
+            for (auto obj : physicsObjects) {
+                obj->draw(simple, Model);
+            }
         simple->unbind();
     }
 
-	void updatePhysics(float dt) {
-		for (int i = 0; i < physicsObjects.size(); i++) {
-			for (int j = i + 1; j < physicsObjects.size(); j++) {
-				physicsObjects[i]->checkCollision(physicsObjects[j].get());
-			}
-		}
-		for (auto obj : physicsObjects) {
-			obj->update();
-		}
-	}
+    void updatePhysics(float dt) {
+        for (int i = 0; i < physicsObjects.size(); i++) {
+            for (int j = i + 1; j < physicsObjects.size(); j++) {
+                physicsObjects[i]->checkCollision(physicsObjects[j].get());
+            }
+        }
+        for (auto obj : physicsObjects) {
+            obj->update();
+        }
+    }
 
-	vec3 milesPosition;
-	void setupMilesScene() {
-		// put models in their starting positions.
-		// variables can be declared in global scope for use in the render function, and initialized here.
-		// if you want to use physics, call physicsObjects.clear() then add your own physics objects.
-		milesPosition = vec3(0);
-	}
+    vec3 milesPosition;
+    void setupMilesScene() {
+        // put models in their starting positions.
+        // variables can be declared in global scope for use in the render function, and initialized here.
+        // if you want to use physics, call physicsObjects.clear() then add your own physics objects.
+        milesPosition = vec3(0);
+    }
 
-	void renderMilesScene(float frametime) {
-		if (0 /* replace with end condition */) {
-			nextScene();
-		}
-		// see renderSimpleProg for reference
-	}
+    void renderMilesScene(float frametime) {
+        if (0 /* replace with end condition */) {
+            nextScene();
+        }
+        // see renderSimpleProg for reference
+    }
+    
+    vec3 gwenSpiderPosition = vec3(0, 0, -5);
+    void setupGwenScene() {
 
-	void setupGwenScene() {
+    }
 
-	}
+    void renderGwenScene(float frametime) {
+        shaderManager->setCurrentShader(SIMPLEPROG);
+        shared_ptr<Program> simple = shaderManager->getCurrentShader();
+        auto Model = make_shared<MatrixStack>();
+        
+        simple->bind();
+        SetProjectionMatrix(simple);
+        SetViewMatrix(simple);
+        
+        Model->pushMatrix();
+        Model->translate(vec3(0, -3, -7));
+        //Model->rotate(detectiveRotation, vec3(0, 1, 0));
+        glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+        sphere->draw(simple);
+        Model->popMatrix();
+        simple->unbind();
+        //nextScene();
+    }
 
-	void renderGwenScene(float frametime) {
-        renderSimpleProg(frametime);
-	}
+    void setupNoirBiteScene() {
 
-	void setupNoirBiteScene() {
+    }
 
-	}
+    void renderNoirBiteScene(float frametime) {
 
-	void renderNoirBiteScene(float frametime) {
+    }
 
-	}
+    void setupNoirPortalScene() {
 
-	void setupNoirPortalScene() {
+    }
 
-	}
+    void renderNoirPortalScene(float frametime) {
 
-	void renderNoirPortalScene(float frametime) {
+    }
 
-	}
+    void setupPigScene() {
 
-	void setupPigScene() {
+    }
 
-	}
+    void renderPigScene(float frametime) {
 
-	void renderPigScene(float frametime) {
+    }
 
-	}
+    void setupMinecraftScene() {
 
-	void setupMinecraftScene() {
+    }
 
-	}
+    void renderMinecraftScene(float frametime) {
 
-	void renderMinecraftScene(float frametime) {
+    }
 
-	}
+    void setupAllScene() {
 
-	void setupAllScene() {
+    }
 
-	}
-
-	void renderAllScene(float frametime) {
-		// Scene showing all spiders at once
-	}
+    void renderAllScene(float frametime) {
+        // Scene showing all spiders at once
+    }
 };
 
 int main(int argc, char *argv[])
 {
-	// Where the resources are loaded from
-	std::string resourceDir = "../resources";
+    // Where the resources are loaded from
+    std::string resourceDir = "../../resources";
 
-	if (argc >= 2)
-	{
-		resourceDir = argv[1];
-	}
+    if (argc >= 2)
+    {
+        resourceDir = argv[1];
+    }
 
-	Application *application = new Application();
+    Application *application = new Application();
 
-	// Your main will always include a similar set up to establish your window
-	// and GL context, etc.
+    // Your main will always include a similar set up to establish your window
+    // and GL context, etc.
 
-	WindowManager *windowManager = new WindowManager();
-	windowManager->init(640, 480);
-	windowManager->setEventCallbacks(application);
-	application->windowManager = windowManager;
+    WindowManager *windowManager = new WindowManager();
+    windowManager->init(640, 480);
+    windowManager->setEventCallbacks(application);
+    application->windowManager = windowManager;
 
-	// This is the code that will likely change program to program as you
-	// may need to initialize or set up different data and state
+    // This is the code that will likely change program to program as you
+    // may need to initialize or set up different data and state
 
-	application->init(resourceDir);
-	application->initGeom(resourceDir);
-	application->initPhysicsObjects();
-	application->nextScene();
+    application->init(resourceDir);
+    application->initGeom(resourceDir);
+    application->initPhysicsObjects();
+    application->nextScene();
 
-	auto lastTime = chrono::high_resolution_clock::now();
-	float accumulator = 0.0f;
-	Time.physicsDeltaTime = 0.02f;
+    auto lastTime = chrono::high_resolution_clock::now();
+    float accumulator = 0.0f;
+    Time.physicsDeltaTime = 0.02f;
 
-	// Loop until the user closes the window.
-	while (! glfwWindowShouldClose(windowManager->getHandle()))
-	{
+    // Loop until the user closes the window.
+    while (! glfwWindowShouldClose(windowManager->getHandle()))
+    {
 
-		// save current time for next frame
-		auto nextLastTime = chrono::high_resolution_clock::now();
+        // save current time for next frame
+        auto nextLastTime = chrono::high_resolution_clock::now();
 
-		// get time since last frame
-		float deltaTime =
-			chrono::duration_cast<std::chrono::microseconds>(
-				chrono::high_resolution_clock::now() - lastTime)
-				.count();
+        // get time since last frame
+        float deltaTime =
+            chrono::duration_cast<std::chrono::microseconds>(
+                chrono::high_resolution_clock::now() - lastTime)
+                .count();
 
-		// convert microseconds (weird) to seconds (less weird)
-		deltaTime *= 0.000001;
+        // convert microseconds (weird) to seconds (less weird)
+        deltaTime *= 0.000001;
 
-		// reset lastTime so that we can calculate the deltaTime
-		// on the next frame
-		lastTime = nextLastTime;
+        // reset lastTime so that we can calculate the deltaTime
+        // on the next frame
+        lastTime = nextLastTime;
 
-		accumulator += deltaTime;
-		while (accumulator >= Time.physicsDeltaTime) {
-			application->updatePhysics(Time.physicsDeltaTime);
-			accumulator -= Time.physicsDeltaTime;
-		}
+        accumulator += deltaTime;
+        while (accumulator >= Time.physicsDeltaTime) {
+            application->updatePhysics(Time.physicsDeltaTime);
+            accumulator -= Time.physicsDeltaTime;
+        }
 
-		// Render scene.
-		application->render(deltaTime);
+        // Render scene.
+        application->render(deltaTime);
 
-		// Swap front and back buffers.
-		glfwSwapBuffers(windowManager->getHandle());
-		// Poll for and process events.
-		glfwPollEvents();
-	}
+        // Swap front and back buffers.
+        glfwSwapBuffers(windowManager->getHandle());
+        // Poll for and process events.
+        glfwPollEvents();
+    }
 
-	// Quit program.
-	windowManager->shutdown();
-	return 0;
+    // Quit program.
+    windowManager->shutdown();
+    return 0;
 }
