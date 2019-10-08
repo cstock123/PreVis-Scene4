@@ -88,6 +88,7 @@ public:
     shared_ptr<Model> regular_pig;
     shared_ptr<Model> barn;
     shared_ptr<Model> cartoon_spider;
+	shared_ptr<Shape> miles;
 
 	vector<shared_ptr<PhysicsObject>> physicsObjects;
 	Spider spider;
@@ -244,6 +245,15 @@ public:
         barn = make_shared<Model>((resourceDirectory + "/models/barn.obj").c_str());
         cartoon_spider = make_shared<Model>((resourceDirectory + "/models/cartoonSpider.obj").c_str());
         
+		rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/miles-spider.obj").c_str());
+		if (!rc) {
+			cerr << errStr << endl;
+		} else {
+			miles = make_shared<Shape>();
+			miles->createShape(TOshapes[0]);
+			miles->measure();
+			miles->init();
+		}
 	}
 
 	/**
@@ -438,19 +448,68 @@ public:
 		}
 	}
 
-	vec3 milesPosition;
+	float milesRotation;
+	vec3 milesPortalScale;
+	vec3 milesPortalPosition;
+	float tMiles;
+	Spline milesCameraPath;
 	void setupMilesScene() {
-		// put models in their starting positions.
-		// variables can be declared in global scope for use in the render function, and initialized here.
-		// if you want to use physics, call physicsObjects.clear() then add your own physics objects.
-		milesPosition = vec3(0);
+		milesRotation = M_PI / 4;
+		milesPortalScale = vec3(0, 0, 0.1);
+		tMiles = 0;
+		milesPortalPosition = vec3(1, -1, -8);
+		milesCameraPath = Spline(vec3(0), vec3(0, 0, -4), milesPortalPosition, 1);
 	}
 
 	void renderMilesScene(float frametime) {
-		if (1 /* replace with end condition */) {
+        shared_ptr<Program> simple = shaderManager->getCurrentShader();
+        auto Model = make_shared<MatrixStack>();
+
+		tMiles += frametime;
+		if (tMiles < 1) {
+
+		}
+		else if (tMiles < 2) {
+			milesPortalScale.x = tMiles - 1;
+			milesPortalScale.y = milesPortalScale.x;
+		}
+		else if (tMiles < 2.5) {
+
+		}
+		else if (tMiles < 3.5) {
+			milesRotation += M_PI / 2 * frametime;
+		}
+		else if (tMiles < 4) {
+
+		}
+		else if (tMiles < 5) {
+			if (!milesCameraPath.isDone()) {
+				milesCameraPath.update(frametime);
+				camera.eye = milesCameraPath.getPosition();
+				camera.target = camera.eye + vec3(0, 0, -1);
+			}
+		}
+		else {
 			nextScene();
 		}
-		// see renderSimpleProg for reference
+
+		simple->bind();
+            // Apply perspective projection.
+            SetProjectionMatrix(simple);
+            SetViewMatrix(simple);
+			Model->pushMatrix();
+				Model->translate(vec3(-2, -4, -6));
+				Model->rotate(milesRotation, vec3(0, 1, 0));
+                glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+				miles->draw(simple);
+			Model->popMatrix();
+			Model->pushMatrix();
+				Model->translate(milesPortalPosition);
+				Model->scale(milesPortalScale);
+                glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+				sphere->draw(simple);
+			Model->popMatrix();
+		simple->unbind();
 	}
 
 	void setupGwenScene() {
@@ -479,6 +538,8 @@ public:
 		spider.location = noirSpiderPath[0].getPosition();
 		noirPortalScale = 0;
 		detectiveRotation = 0;
+		camera.eye = vec3(0);
+		camera.target = vec3(0, 0, -1);
 	}
 
 	void renderNoirBiteScene(float frametime) {
