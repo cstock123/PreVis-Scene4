@@ -11,6 +11,7 @@
 #include "Program.h"
 #include "MatrixStack.h"
 #include "Shape.h"
+#include "Model.h"
 #include "WindowManager.h"
 #include "GLTextureWriter.h"
 
@@ -37,6 +38,8 @@ public:
     ~PigSpider();
     
     shared_ptr<Shape> sphere;
+    shared_ptr<Shape> pig_head;
+    
     float time; // frame time for animation
     
     /* * * * * * * * * * * * * * * * * * * * * *
@@ -53,8 +56,8 @@ public:
     vec3 location = vec3(0);
     
     // ----------- body variables -------------- //
-    vec3 bodyPosition = vec3(0, 0, 1);
-    vec3 bodyScale = vec3(1, 0.7, 1);
+    vec3 bodyPosition = vec3(0, 0, 0);
+    vec3 bodyScale = vec3(.6, 0.7, .6);
     
     // ----------- head variables -------------- //
     vec3 headPosition = vec3(0, 0, -0.2);
@@ -63,31 +66,28 @@ public:
     
     // ----------- eye variables ------------- //
     float eyeOffset = 0.1; // offset from center horizontal line of spider head to center of eyes
-    vec3 headToEyePosition = vec3(0, eyeOffset, -headRadius);
-    float eyeSize = 0.025;
-    float eyeDistances = eyeSize / 2; // distance between each eye
-    
-    // ----------- mouth variables ------------- //
-    vec3 headToMouthPosition = vec3(0, 0, -headRadius);
-    float mouthRadius = eyeSize / 2;
-    float mouthWidth = 4 * eyeSize;
-    float fangHeight = mouthWidth / 2.0;
-    vec3 mouthLineScale = vec3(mouthWidth, mouthRadius, mouthRadius); // top line of mouth
-    vec3 mouthFangScale = vec3(mouthRadius, fangHeight, mouthRadius);
+    vec3 headToEyePosition = vec3(0, 1.1, -headRadius + .5);
+    vec3 eyeSize = vec3(.1, .13, .1);
     
     // ----------- leg variables ------------- //
     vec3 sphereToLegScale = vec3(0.05, 0.05, 1);
     float legBendAngle = M_PI_2; // angle of leg joint
     vec3 legOrigin = vec3(-1, 0, 0); // center point where left legs come out of
     
+    // ----------- arm variables ------------- //
+    vec3 armOrigin = vec3(-1, 1, 0);
     
     // ----------- Functions -------------- //
-    void initialize(shared_ptr<Shape> sphere);
+    void initialize(shared_ptr<Shape> sphere, shared_ptr<Shape> pig_head);
     void draw(shared_ptr<Program> prog, shared_ptr<MatrixStack> M);
+    void drawHead(shared_ptr<Program> prog, shared_ptr<MatrixStack> M, vec3 translation, vec3 scale);
     void drawEyes(shared_ptr<Program> prog, shared_ptr<MatrixStack> M);
     void drawMouth(shared_ptr<Program> prog, shared_ptr<MatrixStack> M);
     void drawLegs(shared_ptr<Program> prog, shared_ptr<MatrixStack> M);
+    void drawArms(shared_ptr<Program> prog, shared_ptr<MatrixStack> M);
     void drawLeg(shared_ptr<Program> prog, shared_ptr<MatrixStack> M,
+                 vec3 rotations, vec3 translate);
+    void drawArm(shared_ptr<Program> prog, shared_ptr<MatrixStack> M,
                  vec3 rotations, vec3 translate);
     void drawPart(shared_ptr<Program> prog, shared_ptr<MatrixStack> M, vec3 translation, vec3 scale);
     void drawPart(shared_ptr<Program> prog, shared_ptr<MatrixStack> M, vec3 scale);

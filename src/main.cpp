@@ -52,8 +52,10 @@
 #include "physics/ColliderMesh.h"
 #include "Constants.h"
 #include "Spider.h"
+#include "PigSpider.h"
 #include "ShaderManager.h"
 #include "Spline.h"
+#include "Model.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader/tiny_obj_loader.h>
@@ -79,9 +81,14 @@ public:
 	// Shape to be used (from  file) - modify to support multiple
 	shared_ptr<Shape> sphere;
 	shared_ptr<Shape> cube;
+    shared_ptr<Shape> spider_pig;
+    shared_ptr<Model> regular_pig;
+    shared_ptr<Model> barn;
+    shared_ptr<Model> cartoon_spider;
 
 	vector<shared_ptr<PhysicsObject>> physicsObjects;
 	Spider spider;
+    PigSpider pigSpider;
 
 	// Two part path
   Spline splinepath[2];
@@ -97,6 +104,15 @@ public:
 
 	enum SceneType { SCENE_START, SCENE_MILES, SCENE_GWEN, SCENE_NOIR_BITE, SCENE_NOIR_PORTAL, SCENE_PIG, SCENE_MINECRAFT, SCENE_ALL };
 	SceneType currentScene = SCENE_NOIR_PORTAL;
+    
+    struct {
+        vec3 eye = vec3(0);
+        vec3 target = vec3(0, 0, -1);
+        vec3 up = vec3(0, 1, 0);
+    } camera;
+    
+    
+    bool is_spider = false;
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
@@ -110,6 +126,10 @@ public:
 		if (key == GLFW_KEY_Z && action == GLFW_RELEASE) {
 			glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 		}
+        
+        if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+            is_spider = true;
+        }
 	}
 
 	void mouseCallback(GLFWwindow *window, int button, int action, int mods)
@@ -146,7 +166,7 @@ public:
 		//EXAMPLE new set up to read one shape from one obj file - convert to read several
 		// Initialize mesh
 		// Load geometry
- 		// Some obj files contain material information.We'll ignore them for this assignment.
+ 		// Some obj files contain material information. We'll ignore them for this assignment.
  		vector<tinyobj::shape_t> TOshapes;
  		vector<tinyobj::material_t> objMaterials;
  		string errStr;
@@ -174,6 +194,21 @@ public:
 			cube->measure();
 			cube->init();
 		}
+        
+        rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/pig.obj").c_str());
+        if (!rc) {
+            cerr << errStr << endl;
+        } else {
+            spider_pig = make_shared<Shape>();
+            spider_pig->createShape(TOshapes[0]);
+            spider_pig->measure();
+            spider_pig->init();
+        }
+        
+        regular_pig = make_shared<Model>((resourceDirectory + "/models/full_pig.obj").c_str());
+        barn = make_shared<Model>((resourceDirectory + "/models/barn.obj").c_str());
+        cartoon_spider = make_shared<Model>((resourceDirectory + "/models/cartoonSpider.obj").c_str());
+        
 	}
 
 	/**
@@ -204,6 +239,7 @@ public:
     
     // Give spider sphere to draw
 		spider.initialize(sphere);
+        pigSpider.initialize(sphere, spider_pig);
     
 		// init splines
 		splinepath[0] = Spline(glm::vec3(-6,0,-5), glm::vec3(-1,-5,-5), glm::vec3(1, 5, -5), glm::vec3(2,0,-5), 5);
@@ -220,9 +256,17 @@ public:
         return Projection;
     }
     
+    /*void SetViewMatrix(shared_ptr<Program> curShader) {
+        auto View = make_shared<MatrixStack>();
+        View->pushMatrix();
+        glUniformMatrix4fv(curShader->getUniform("V"), 1, GL_FALSE, value_ptr(View->topMatrix()));
+        View->popMatrix();
+    }*/
+    
     void SetViewMatrix(shared_ptr<Program> curShader) {
         auto View = make_shared<MatrixStack>();
         View->pushMatrix();
+        View->lookAt(camera.eye, camera.target, camera.up);
         glUniformMatrix4fv(curShader->getUniform("V"), 1, GL_FALSE, value_ptr(View->topMatrix()));
         View->popMatrix();
     }
@@ -398,11 +442,24 @@ public:
 
 	}
 
-	void setupPigScene() {
-
+    Spline pigCameraPath[2];
+    Spline pigSpiderPath;
+    float tPig;
+    float pSpiderRotate;
+    glm::vec3 pSpiderPosition;
+	
+    void setupPigScene() {
+        tPig = 0;
+        pSpiderRotate = 0;
+        pSpiderPosition = vec3(0, 0, -4);
+        pigCameraPath[0] = Spline(vec3(0), vec3(0, -.6, -5.8), vec3(0, 0, 0), 3);
+        pigCameraPath[1] = Spline(vec3(0), vec3(0, -10, 0), vec3(0, -42, 0), 2.1);
+        pigSpiderPath = Spline(pSpiderPosition, vec3(0, -10, -4), vec3(0, -42, -4), 2);
 	}
-
+    
 	void renderPigScene(float frametime) {
+        
+        tPig += frametime;
         shared_ptr<Program> simple = shaderManager->getCurrentShader();
         
         auto Model = make_shared<MatrixStack>();
@@ -412,41 +469,96 @@ public:
         SetProjectionMatrix(simple);
         SetViewMatrix(simple);
         
-        // Demo of Bezier Spline
-        glm::vec3 position;
-        
-        if(!splinepath[0].isDone())
-        {
-            splinepath[0].update(frametime);
-            position = splinepath[0].getPosition();
-        } else {
-            splinepath[1].update(frametime);
-            position = splinepath[1].getPosition();
-        }
-        
-        // draw mesh
+        // Barn
         Model->pushMatrix();
         Model->loadIdentity();
-        //"global" translate
-        Model->translate(position);
-        Model->pushMatrix();
-        Model->scale(vec3(0.5, 0.5, 0.5));
+        Model->translate(vec3(-4, -1.5, -10));
+        Model->scale(vec3(1, 1, 1));
+        Model->rotate(-(M_PI / 2), vec3(1, 0, 0));
+        Model->rotate((M_PI / 6), vec3(0, 0, 1));
         glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
-        sphere->draw(simple);
-        Model->popMatrix();
-        Model->popMatrix();
-        // spider
-        Model->pushMatrix();
-        Model->loadIdentity();
-        Model->translate(vec3(0, 0, -1));
-        Model->scale(2);
-        Model->rotate(M_PI, YAXIS);
-        spider.draw(simple, Model);
+        barn->draw(simple, Model);
         Model->popMatrix();
         
-        for (auto obj : physicsObjects) {
-            obj->draw(simple, Model);
+        // Ground
+        Model->pushMatrix();
+        Model->loadIdentity();
+        Model->translate(vec3(0, -1, 0));
+        Model->scale(vec3(100, 0.5, 100));
+        glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+        cube->draw(simple);
+        Model->popMatrix();
+        
+        //Other ground
+        Model->pushMatrix();
+        Model->loadIdentity();
+        Model->translate(vec3(0, -50, 0));
+        Model->scale(vec3(100, 0.5, 100));
+        glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+        cube->draw(simple);
+        Model->popMatrix();
+        //Mini spider
+        Model->pushMatrix();
+        Model->loadIdentity();
+        Model->translate(vec3(0, -.35, -3.2));
+        Model->rotate((M_PI / 2), vec3(1, 0, 0));
+        Model->scale(vec3(.01, .01, .01));
+        glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+        cartoon_spider->draw(simple, Model);
+        Model->popMatrix();
+        
+        // Regular old pig
+        if(tPig < 4){
+            pigCameraPath[0].update(frametime);
+            if (!pigCameraPath[0].isDone()) {
+                camera.eye = pigCameraPath[0].getPosition();
+                camera.target = camera.eye + vec3(0, 0, -1);
+            }
+            Model->pushMatrix();
+            Model->loadIdentity();
+            Model->translate(vec3(-1.3, -.8, -4));
+            Model->rotate(-(M_PI / 2), vec3(1, 0, 0));
+            Model->scale(vec3(1, 1, 1));
+            glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+            regular_pig->draw(simple, Model);
+            Model->popMatrix();
         }
+        // Suddently becomes Pig Spider!
+        else {
+            Model->pushMatrix();
+            Model->loadIdentity();
+            Model->translate(pigSpiderPath.getPosition());
+            Model->rotate(pSpiderRotate, vec3(0, 0, 1));
+            Model->scale(5);
+            Model->rotate(M_PI, YAXIS);
+            pigSpider.draw(simple, Model);
+            Model->popMatrix();
+        }
+        
+        // Then the Portal happens
+        if(tPig > 5){
+            if(tPig > 5.5){
+                pigCameraPath[1].update(frametime);
+                if (!pigCameraPath[1].isDone()) {
+                    camera.eye = pigCameraPath[1].getPosition();
+                    camera.target = camera.eye + vec3(0, 0, -1);
+                }
+                if(!pigSpiderPath.isDone()){
+                    pigSpiderPath.update(frametime);
+                }
+                if(pSpiderRotate > -9){
+                    pSpiderRotate -= .08;
+                }
+            }
+            Model->pushMatrix();
+            Model->loadIdentity();
+            Model->translate(vec3(1, -.8, -4));
+            Model->scale(vec3(1, .1, 1));
+            glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+            sphere->draw(simple);
+            Model->popMatrix();
+        }
+        
         simple->unbind();
 	}
 

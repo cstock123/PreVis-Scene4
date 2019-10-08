@@ -16,9 +16,10 @@ PigSpider::~PigSpider()
 {
 }
 
-void PigSpider::initialize(shared_ptr<Shape> sphere)
+void PigSpider::initialize(shared_ptr<Shape> sphere, shared_ptr<Shape> pig_head)
 {
     this->sphere = sphere;
+    this->pig_head = pig_head;
 }
 
 void PigSpider::draw(shared_ptr<Program> prog, shared_ptr<MatrixStack> M)
@@ -32,11 +33,12 @@ void PigSpider::draw(shared_ptr<Program> prog, shared_ptr<MatrixStack> M)
     M->pushMatrix(); // head
     M->translate(headPosition);
     drawEyes(prog, M);
-    drawMouth(prog, M);
-    drawPart(prog, M, vec3(headRadius, headHeight, headRadius));
+    //drawPart(prog, M, vec3(headRadius, headHeight, headRadius));
+    drawHead(prog, M, vec3(headRadius, headHeight, headRadius), vec3(.25, .25, .25));
     M->popMatrix();
     
     drawLegs(prog, M);
+    drawArms(prog, M);
     M->popMatrix();
 }
 
@@ -44,26 +46,9 @@ void PigSpider::drawEyes(shared_ptr<Program> prog, shared_ptr<MatrixStack> M)
 {
     M->pushMatrix();
     M->translate(headToEyePosition);
-    for (int i = 0; i < 4; ++i) {
-        float x = i * 2 * eyeSize - eyeSize * 3;
-        drawPart(prog, M, vec3(x, eyeSize, 0), vec3(eyeSize)); // top row
-        drawPart(prog, M, vec3(x, -eyeSize, 0), vec3(eyeSize)); // bottom row
-    }
-    M->popMatrix();
-}
+    drawPart(prog, M, vec3(-.19, -.1, 0), eyeSize);
+    drawPart(prog, M, vec3(.19, -.1, 0), eyeSize); // top row
 
-void PigSpider::drawMouth(shared_ptr<Program> prog, shared_ptr<MatrixStack> M)
-{
-    M->pushMatrix();
-    M->translate(headToMouthPosition);
-    
-    // top line of mouth
-    drawPart(prog, M, mouthLineScale);
-    
-    // Fangs
-    drawPart(prog, M, vec3(mouthWidth / 2 + 2 * mouthRadius, -fangHeight / 2 - mouthRadius, 0), mouthFangScale);
-    drawPart(prog, M, vec3(-mouthWidth / 2 - 2 * mouthRadius, -fangHeight / 2 - mouthRadius, 0), mouthFangScale);
-    
     M->popMatrix();
 }
 
@@ -73,10 +58,26 @@ void PigSpider::drawLegs(shared_ptr<Program> prog, shared_ptr<MatrixStack> M)
     float delta = -M_PI_4 / 2;
     vec3 rotations;
     M->pushMatrix();
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 3; ++i) {
         rotations = defaultLegRotation(i);
-        drawLeg(prog, M, rotations, legOrigin); // left leg
-        drawLeg(prog, M, vec3(rotations.x, -rotations.y, -rotations.z), -legOrigin); // right leg
+        drawLeg(prog, M, rotations, vec3(-1, -.4, 0)); // left leg
+        drawLeg(prog, M, vec3(rotations.x, -rotations.y, -rotations.z), vec3(1, -.4, 0)); // right leg
+    }
+    M->popMatrix();
+}
+
+void PigSpider::drawArms(shared_ptr<Program> prog, shared_ptr<MatrixStack> M)
+{
+    float adjustment = M_PI_4 / 2;
+    float delta = -M_PI_4 / 2;
+    vec3 rotations;
+    M->pushMatrix();
+    for (int i = 0; i < 1; ++i) {
+        rotations = defaultLegRotation(i);
+        //drawArm(prog, M, rotations, vec3(-.7, .2, 0)); // left leg
+        //drawArm(prog, M, vec3(rotations.x, -rotations.y, -rotations.z), vec3(.7, .2, 0)); // right leg
+        drawLeg(prog, M, rotations, vec3(-1, .2, 0)); // left leg
+        drawLeg(prog, M, vec3(rotations.x, -rotations.y, -rotations.z), vec3(1, .2, 0)); // right leg
     }
     M->popMatrix();
 }
@@ -99,6 +100,26 @@ void PigSpider::drawLeg(shared_ptr<Program> prog, shared_ptr<MatrixStack> M,
     M->popMatrix();
 }
 
+void PigSpider::drawArm(shared_ptr<Program> prog, shared_ptr<MatrixStack> M,
+                        vec3 rotations, vec3 translate)
+{
+    M->pushMatrix();
+    M->rotate(rotations.y, YAXIS);
+    M->rotate(rotations.x, XAXIS);
+    M->rotate(rotations.z, ZAXIS);
+    M->translate(translate);
+    M->pushMatrix();
+    M->rotate(M_PI_2, YAXIS);
+    M->rotate(M_PI_2, XAXIS);
+    //drawPart(prog, M, vec3(0, translate.x, 1), vec3(0.1, 0.1, .5));
+    drawPart(prog, M, vec3(0, translate.x, 1), sphereToLegScale);
+    M->popMatrix();
+    M->rotate(legBendAngle, YAXIS);
+    //drawPart(prog, M, vec3(0.1, 0.1, .5));
+    drawPart(prog, M, sphereToLegScale);
+    M->popMatrix();
+}
+
 void PigSpider::drawPart(shared_ptr<Program> prog, shared_ptr<MatrixStack> M, vec3 translation, vec3 scale)
 {
     M->pushMatrix();
@@ -113,6 +134,20 @@ void PigSpider::drawPart(shared_ptr<Program> prog, shared_ptr<MatrixStack> M, ve
     M->scale(scale);
     glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, value_ptr(M->topMatrix()));
     sphere->draw(prog);
+    M->popMatrix();
+}
+
+void PigSpider::drawHead(shared_ptr<Program> prog, shared_ptr<MatrixStack> M, vec3 translation, vec3 scale)
+{
+    M->pushMatrix();
+    M->rotate(-1.57, vec3(1, 0, 0));
+    M->rotate(3.14, vec3(0, 0, 1));
+    M->translate(vec3(0, .2, .3));
+    M->pushMatrix();
+    M->scale(vec3(.05, .05, .05));
+    glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, value_ptr(M->topMatrix()));
+    pig_head->draw(prog);
+    M->popMatrix();
     M->popMatrix();
 }
 
