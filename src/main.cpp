@@ -85,7 +85,8 @@ public:
     Spider spider;
 
     // Two part path
-  Spline splinepath[2];
+    Spline splinepath[2];
+    Spline gwenSpiderSplinepath;
 
     // Contains vertex information for OpenGL
     GLuint VertexArrayID;
@@ -97,13 +98,18 @@ public:
     vec3 gMin;
 
     enum SceneType { SCENE_START, SCENE_MILES, SCENE_GWEN, SCENE_NOIR_BITE, SCENE_NOIR_PORTAL, SCENE_PIG, SCENE_MINECRAFT, SCENE_ALL };
-    SceneType currentScene = SCENE_GWEN;
+    SceneType currentScene = SCENE_MILES;
 
     struct {
         vec3 eye = vec3(0);
         vec3 target = vec3(0, 0, -1);
         vec3 up = vec3(0, 1, 0);
     } camera;
+    
+    glm::vec3 mylerp(glm::vec3 x, glm::vec3 y, float t) {
+      return x * (1.f - t) + y * t;
+    }
+
 
     void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
     {
@@ -254,6 +260,7 @@ public:
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shaderManager->setCurrentShader(SIMPLEPROG);
+        //cout << "Current scene: " << currentScene << endl;
         switch (currentScene) {
             case SCENE_MILES:
                 renderMilesScene(frametime);
@@ -393,11 +400,45 @@ public:
     }
     
     vec3 gwenSpiderPosition = vec3(0, 0, -5);
+    vec3 gwenPortalScale;
+    vec3 gwenPortalPosition;
     void setupGwenScene() {
+        gwenPortalScale = vec3(6, 6, 0.01);
+        gwenPortalPosition = vec3(-4, 1, -20);
+        
+        /*gwenSpiderSplinepath[0] = Spline(gwenPortalPosition, vec3(-2.5,5,-10), vec3(-1,2,-8), vec3(1,-2,-5), 5);
+        
+        gwenSpiderSplinepath = Spline( vec3(0,0,-10),
+                                       vec3(1,0,-10),
+                                       vec3(2,0,-10),
+                                       vec3(3,0,-10), 5);
+         */
+        gwenSpiderSplinepath = Spline(glm::vec3(-6,0,-5), glm::vec3(-1,-5,-5), glm::vec3(1, 5, -5), glm::vec3(2,0,-5), 5);
+        
 
     }
 
     void renderGwenScene(float frametime) {
+        static float sceneTime = 0.0f;
+        float gwenSpiderEmerges = 1.0f;
+        float portalDissappears = 4.0f;
+        float spiderLands = 4.0f;
+        float sceneFinished = 6.0f;
+        
+        bool drawGwenSpider = sceneTime > gwenSpiderEmerges;
+        bool drawPortal = sceneTime < portalDissappears;
+        
+        //cout << "SCENE TIME " << sceneTime << endl;
+        
+        vec3 spiderPath[2] = {gwenPortalPosition, vec3(2, -1, -5)};
+        
+        if(!gwenSpiderSplinepath.isDone())
+        {
+            //cout << "not done splining" << endl;
+            gwenSpiderSplinepath.update(frametime);
+            gwenSpiderPosition = splinepath[0].getPosition();
+        }
+        
         shaderManager->setCurrentShader(SIMPLEPROG);
         shared_ptr<Program> simple = shaderManager->getCurrentShader();
         auto Model = make_shared<MatrixStack>();
@@ -407,21 +448,59 @@ public:
         SetViewMatrix(simple);
         
         Model->pushMatrix();
-        Model->translate(vec3(0, -3, -7));
-        //Model->rotate(detectiveRotation, vec3(0, 1, 0));
+        Model->translate(vec3(0,-4,0));
+        Model->scale(vec3(200,.01,200));
         glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
         sphere->draw(simple);
         Model->popMatrix();
+        
+        if(drawPortal)
+        {
+            float randx = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX) * 2.0f) - 1;
+            float randy = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX) * 2.0f) - 1;
+            float randz = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX) * 2.0f) - 1;
+
+            
+            gwenPortalScale = vec3(gwenPortalScale.x + randx * frametime,
+                                   gwenPortalScale.y + randy * frametime,
+                                   gwenPortalScale.z + randz * frametime);
+            
+            Model->pushMatrix();
+            Model->translate(gwenPortalPosition);
+            Model->scale(gwenPortalScale * std::min((portalDissappears - sceneTime), 1.0f));
+            glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+            sphere->draw(simple);
+            Model->popMatrix();
+        }
+        
+        
+        if(drawGwenSpider)
+        {
+            vec3 position = mylerp(spiderPath[1], spiderPath[0], std::max(spiderLands - sceneTime, 0.0f));
+            
+            Model->pushMatrix();
+            //Model->translate(vec3(0, -1, -5));
+            Model->translate(position);
+            Model->scale(vec3(0.4,0.4,0.4));
+            Model->rotate(3.14159, vec3(0,1,0));
+            Model->rotate(-3.14159 / 2, vec3(1,0,0));
+            glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+            gwen_spider->draw(simple);
+            Model->popMatrix();
+        }
+        
         simple->unbind();
-        //nextScene();
+        if(sceneTime > sceneFinished) nextScene();
+        else sceneTime += frametime;
     }
 
+    
     void setupNoirBiteScene() {
-
+        
     }
 
     void renderNoirBiteScene(float frametime) {
-
+       
     }
 
     void setupNoirPortalScene() {
