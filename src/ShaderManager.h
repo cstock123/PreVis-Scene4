@@ -33,7 +33,7 @@
 #include "Program.h"
 
 #define SIMPLEPROG 0
-#define SIMPLEPROG2 1
+#define GREYPROG 1
 
 #include <memory>
 
@@ -54,6 +54,7 @@ public:
     
     void initShaders();
     shared_ptr<Program> initSimpleProgShader();
+    shared_ptr<Program> initGreyProgShader();
     
     shared_ptr<Program> getCurrentShader() { return currentShader; }
     void setCurrentShader(int shader) { currentShader = shaderMap[shader]; }

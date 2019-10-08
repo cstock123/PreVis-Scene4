@@ -80,7 +80,8 @@ public:
 	shared_ptr<Shape> sphere;
 	shared_ptr<Shape> cube;
 	shared_ptr<Shape> detectiveModel;
-	shared_ptr<Shape> spiderNoirModel;
+    shared_ptr<Shape> noirSpiderPart;
+    vector<shared_ptr<Shape>> noirSpiderParts;
 
 	vector<shared_ptr<PhysicsObject>> physicsObjects;
 	Spider spider;
@@ -93,12 +94,18 @@ public:
 
 	// Data necessary to give our triangle to OpenGL
 	GLuint VertexBufferID;
+    
+    float testScale = 0;
+    float rotateTheta = 0;
+    float scanDown = 0;
+    float spiderScale = 0.1;
+    float spiderRotate = 0;
 
 	//example data that might be useful when trying to compute bounds on multi-shape
 	vec3 gMin;
 
 	enum SceneType { SCENE_START, SCENE_MILES, SCENE_GWEN, SCENE_NOIR_BITE, SCENE_NOIR_PORTAL, SCENE_PIG, SCENE_MINECRAFT, SCENE_ALL };
-	SceneType currentScene = SCENE_GWEN;
+	SceneType currentScene = SCENE_START;
 
 	struct { 
 		vec3 eye = vec3(0);
@@ -183,7 +190,7 @@ public:
 			cube->init();
 		}
 
-		rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/detective.obj").c_str());
+		rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/detective.obj").c_str());	
 		if (!rc) {
 			cerr << errStr << endl;
 		} else {
@@ -192,16 +199,22 @@ public:
 			detectiveModel->measure();
 			detectiveModel->init();
 		}
-
-		rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/spider-noir.obj").c_str());
-		if (!rc) {
-			cerr << errStr << endl;
-		} else {
-			spiderNoirModel = make_shared<Shape>();
-			spiderNoirModel->createShape(TOshapes[0]);
-			spiderNoirModel->measure();
-			spiderNoirModel->init();
-		}
+        
+        rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/spider-noir.obj").c_str());
+        if (!rc) {
+            cerr << errStr << endl;
+        } else {
+            for (int i = 0; i < TOshapes.size(); i++) {
+                noirSpiderPart = make_shared<Shape>();
+                noirSpiderPart->createShape(TOshapes[0]);
+                noirSpiderPart->measure();
+                noirSpiderPart->init();
+                
+                noirSpiderParts.push_back(noirSpiderPart);
+            }
+            
+        }
+        
 	}
 
 	/**
@@ -230,7 +243,7 @@ public:
 		physicsCube->orientation = rotate(quat(1, 0, 0, 0), 45.0f, vec3(0, 1, 0));
 		physicsObjects.push_back(physicsCube);
     
-    // Give spider sphere to draw
+        // Give spider sphere to draw
 		spider.initialize(sphere);
     
 		// init splines
@@ -397,7 +410,7 @@ public:
 	}
 
 	void renderMilesScene(float frametime) {
-		if (0 /* replace with end condition */) {
+		if (1 /* replace with end condition */) {
 			nextScene();
 		}
 		// see renderSimpleProg for reference
@@ -408,7 +421,7 @@ public:
 	}
 
 	void renderGwenScene(float frametime) {
-
+        nextScene();
 	}
 
 	Spline noirCameraPath[2];
@@ -432,7 +445,7 @@ public:
 	}
 
 	void renderNoirBiteScene(float frametime) {
-		shaderManager->setCurrentShader(SIMPLEPROG);
+		shaderManager->setCurrentShader(GREYPROG);
 		shared_ptr<Program> simple = shaderManager->getCurrentShader();
         auto Model = make_shared<MatrixStack>();
 
@@ -467,6 +480,9 @@ public:
 				spider.location = noirSpiderPath[1].getPosition();
 			}
 		}
+		else {
+			nextScene();
+		}
 
 		simple->bind();
 			SetProjectionMatrix(simple);
@@ -493,11 +509,72 @@ public:
 	}
 
 	void setupNoirPortalScene() {
-
+		camera.eye = vec3(0);
+		camera.target = vec3(0, 0, -1);
 	}
 
 	void renderNoirPortalScene(float frametime) {
-
+        shaderManager->setCurrentShader(GREYPROG);
+        shared_ptr<Program> grey = shaderManager->getCurrentShader();
+        
+        auto Model = make_shared<MatrixStack>();
+        
+        bool insertSpider = false;
+        bool growSpider = false;
+        bool rotateSpider = false;
+        
+        grey->bind();
+            // Apply perspective projection.
+            SetProjectionMatrix(grey);
+            SetViewMatrix(grey);
+        
+            // draw mesh
+            Model->pushMatrix();
+                Model->loadIdentity();
+                //"global" translate
+        
+                Model->translate(vec3(0, 1, -4));
+                rotateTheta += frametime;
+                Model->rotate(rotateTheta, vec3(0, 1, 0));
+                    if (testScale < 2) {
+                        testScale += frametime;
+                    } else {
+                        insertSpider = true;
+                    }
+                    Model->scale(vec3(testScale, 0.1, testScale));
+                    glUniformMatrix4fv(grey->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+                    sphere->draw(grey);
+            Model->popMatrix();
+        
+            if (insertSpider) {
+            }
+        
+            if (insertSpider) {
+                Model->pushMatrix();
+                    Model->loadIdentity();
+                    if (scanDown > -2.5) scanDown -= (frametime * 2.5);
+                    else growSpider = true;
+                
+                    Model->translate(vec3(0, 1 + scanDown, -4));
+                
+                    if (growSpider) {
+                        if (spiderScale < 0.3) spiderScale += frametime;
+                        else rotateSpider = true;
+                    }
+                
+                    if (rotateSpider) {
+                        if (spiderRotate < 3.14159265 * 2) spiderRotate += (5 * frametime);
+                        Model->rotate(spiderRotate, vec3(0, 1, 0));
+                    }
+                
+                    Model->scale(spiderScale);
+                    glUniformMatrix4fv(grey->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+                    for(int i = 0; i < noirSpiderParts.size(); i++) {
+                        noirSpiderParts[i]->draw(grey);
+                    }
+                Model->popMatrix();
+            }
+        grey->unbind();
 	}
 
 	void setupPigScene() {
