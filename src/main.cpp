@@ -80,6 +80,7 @@ public:
 	shared_ptr<Shape> sphere;
 	shared_ptr<Shape> cube;
     shared_ptr<Shape> gwen_spider;
+	vector<shared_ptr<Shape>> minecraftSpiderShapes;
 
 	vector<shared_ptr<PhysicsObject>> physicsObjects;
 	Spider spider;
@@ -97,7 +98,7 @@ public:
 	vec3 gMin;
 
 	enum SceneType { SCENE_START, SCENE_MILES, SCENE_GWEN, SCENE_NOIR_BITE, SCENE_NOIR_PORTAL, SCENE_PIG, SCENE_MINECRAFT, SCENE_ALL };
-	SceneType currentScene = SCENE_START;
+	SceneType currentScene = SCENE_PIG;
 
 	struct { 
 		vec3 eye = vec3(0);
@@ -157,6 +158,7 @@ public:
  		vector<tinyobj::shape_t> TOshapes;
  		vector<tinyobj::material_t> objMaterials;
  		string errStr;
+		int i;
 		//load in the mesh and make the shape(s)
  		bool rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/SmoothSphere.obj").c_str());
 		if (!rc) {
@@ -191,6 +193,19 @@ public:
             gwen_spider->measure();
             gwen_spider->init();
         }
+		//TODO: load more objects from model OR combine array of objects into one in Blender
+		rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/minecraftspider.obj").c_str());
+		if (!rc) {
+			cerr << errStr << endl;
+		} else {
+			minecraftSpiderShapes.resize(TOshapes.size());
+			for (i = 0; i < TOshapes.size(); i++){
+				minecraftSpiderShapes[i] = make_shared<Shape>();
+				minecraftSpiderShapes[i]->createShape(TOshapes[i]);
+				minecraftSpiderShapes[i]->measure();
+				minecraftSpiderShapes[i]->init();
+			}
+		}
 	}
 
 	/**
@@ -421,15 +436,62 @@ public:
 	}
 
 	void renderPigScene(float frametime) {
-
+		
 	}
 
 	void setupMinecraftScene() {
-
+		
 	}
 
 	void renderMinecraftScene(float frametime) {
+		
+		shared_ptr<Program> simple = shaderManager->getCurrentShader();
 
+        auto Model = make_shared<MatrixStack>();
+
+        simple->bind();
+            // Apply perspective projection.
+            SetProjectionMatrix(simple);
+            SetViewMatrix(simple);
+
+			// Demo of Bezier Spline
+			glm::vec3 position;
+
+			 if(!splinepath[0].isDone())
+			{
+				splinepath[0].update(frametime);
+				position = splinepath[0].getPosition();
+			} else {
+				splinepath[1].update(frametime);
+				position = splinepath[1].getPosition();
+			} 
+
+            // draw mesh
+            Model->pushMatrix();
+
+            Model->loadIdentity();
+            //"global" translate
+            Model->translate(position);
+                Model->pushMatrix();
+                Model->scale(vec3(0.5, 0.5, 0.5));
+                glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+                sphere->draw(simple);
+                Model->popMatrix();
+            Model->popMatrix();
+            // spider
+            Model->pushMatrix();
+                Model->loadIdentity();
+                Model->translate(vec3(0, -1, -8));
+                Model->scale(0.2);
+				glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+				for (int i = 0; i < minecraftSpiderShapes.size(); i++)
+                	minecraftSpiderShapes[i]->draw(simple);
+            Model->popMatrix();
+
+			/*for (auto obj : physicsObjects) {
+				obj->draw(simple, Model);
+			}*/
+        simple->unbind();
 	}
 
 	void setupAllScene() {
@@ -457,7 +519,7 @@ int main(int argc, char *argv[])
 	// and GL context, etc.
 
 	WindowManager *windowManager = new WindowManager();
-	windowManager->init(640, 480);
+	windowManager->init(1280, 960);
 	windowManager->setEventCallbacks(application);
 	application->windowManager = windowManager;
 
