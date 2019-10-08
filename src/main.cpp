@@ -1,6 +1,6 @@
 /*
  * Program 3 base code - includes modifications to shape and initGeom in preparation to load
- * multi shape objects 
+ * multi shape objects
  * CPE 471 Cal Poly Z. Wood + S. Sueda + I. Dunn
  */
 
@@ -24,17 +24,17 @@
  SPLINE INSTRUCTIONS
 
  1) Create a spline object, or an array of splines (for a more complex path)
- 2) Initialize the splines. I did this in initGeom in this example. There are 
-	two constructors for it, for order 2 and order 3 splines. The first uses
-	a beginning, intermediate control point, and ending. In the case of Bezier splines, 
-	the path is influenced by, but does NOT necessarily touch, the control point. 
-	There is a second constructor, for order 3 splines. These have two control points. 
-	Use these to create S-curves. The constructor also takes a duration of time that the 
-	path should take to be completed. This is in seconds. 
- 3) Call update(frametime) with the time between the frames being rendered. 
-	3a) Call isDone() and switch to the next part of the path if you are using multiple 
-	    paths or something like that. 
- 4) Call getPosition() to get the vec3 of where the current calculated position is. 
+ 2) Initialize the splines. I did this in initGeom in this example. There are
+    two constructors for it, for order 2 and order 3 splines. The first uses
+    a beginning, intermediate control point, and ending. In the case of Bezier splines,
+    the path is influenced by, but does NOT necessarily touch, the control point.
+    There is a second constructor, for order 3 splines. These have two control points.
+    Use these to create S-curves. The constructor also takes a duration of time that the
+    path should take to be completed. This is in seconds.
+ 3) Call update(frametime) with the time between the frames being rendered.
+    3a) Call isDone() and switch to the next part of the path if you are using multiple
+        paths or something like that.
+ 4) Call getPosition() to get the vec3 of where the current calculated position is.
  ***********************/
 
 #include <chrono>
@@ -74,7 +74,7 @@ class Application : public EventCallbacks
 
 public:
 
-	WindowManager * windowManager = nullptr;
+    WindowManager * windowManager = nullptr;
     
   ShaderManager * shaderManager;
 
@@ -89,13 +89,15 @@ public:
     shared_ptr<Model> barn;
     shared_ptr<Model> cartoon_spider;
 	shared_ptr<Shape> miles;
+    shared_ptr<Shape> gwen_spider;
 
 	vector<shared_ptr<PhysicsObject>> physicsObjects;
 	Spider spider;
     PigSpider pigSpider;
 
 	// Two part path
-  Spline splinepath[2];
+    Spline splinepath[2];
+    Spline gwenSpiderSplinepath;
 
 	// Contains vertex information for OpenGL
 	GLuint VertexArrayID;
@@ -121,6 +123,9 @@ public:
         vec3 up = vec3(0, 1, 0);
     } camera;
     
+	glm::vec3 mylerp(glm::vec3 x, glm::vec3 y, float t) {
+      return x * (1.f - t) + y * t;
+    }
     
     bool is_spider = false;
 
@@ -254,6 +259,16 @@ public:
 			miles->measure();
 			miles->init();
 		}
+
+		rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/models/gwen_spider.obj").c_str());
+        if (!rc) {
+            cerr << errStr << endl;
+        } else {
+            gwen_spider = make_shared<Shape>();
+            gwen_spider->createShape(TOshapes[0]);
+            gwen_spider->measure();
+            gwen_spider->init();
+        }
 	}
 
 	/**
@@ -286,11 +301,11 @@ public:
 		spider.initialize(sphere);
         pigSpider.initialize(sphere, spider_pig);
     
-		// init splines
-		splinepath[0] = Spline(glm::vec3(-6,0,-5), glm::vec3(-1,-5,-5), glm::vec3(1, 5, -5), glm::vec3(2,0,-5), 5);
-		splinepath[1] = Spline(glm::vec3(2,0,-5), glm::vec3(3,-5,-5), glm::vec3(-0.25, 0.25, -5), glm::vec3(0,0,-5), 5);
-	
-	}
+        // init splines
+        splinepath[0] = Spline(glm::vec3(-6,0,-5), glm::vec3(-1,-5,-5), glm::vec3(1, 5, -5), glm::vec3(2,0,-5), 5);
+        splinepath[1] = Spline(glm::vec3(2,0,-5), glm::vec3(3,-5,-5), glm::vec3(-0.25, 0.25, -5), glm::vec3(0,0,-5), 5);
+    
+    }
     
     mat4 SetProjectionMatrix(shared_ptr<Program> curShader) {
         int width, height;
@@ -316,78 +331,79 @@ public:
         View->popMatrix();
     }
 
-	void render(float frametime)
-	{
-		// Get current frame buffer size.
-		int width, height;
-		glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
-		glViewport(0, 0, width, height);
+    void render(float frametime)
+    {
+        // Get current frame buffer size.
+        int width, height;
+        glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
+        glViewport(0, 0, width, height);
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shaderManager->setCurrentShader(SIMPLEPROG);
-		switch (currentScene) {
-			case SCENE_MILES:
-				renderMilesScene(frametime);
-				break;
-			case SCENE_GWEN:
-				renderGwenScene(frametime);
-				break;
-			case SCENE_NOIR_BITE:
-				renderNoirBiteScene(frametime);
-				break;
-			case SCENE_NOIR_PORTAL:
-				renderNoirPortalScene(frametime);
-				break;
-			case SCENE_PIG:
-				renderPigScene(frametime);
-				break;
-			case SCENE_MINECRAFT:
-				renderMinecraftScene(frametime);
-				break;
-			case SCENE_ALL:
-				renderAllScene(frametime);
-				break;
-			default:
-        		renderSimpleProg(frametime);
-				break;
-		}
-	}
+        //cout << "Current scene: " << currentScene << endl;
+        switch (currentScene) {
+            case SCENE_MILES:
+                renderMilesScene(frametime);
+                break;
+            case SCENE_GWEN:
+                renderGwenScene(frametime);
+                break;
+            case SCENE_NOIR_BITE:
+                renderNoirBiteScene(frametime);
+                break;
+            case SCENE_NOIR_PORTAL:
+                renderNoirPortalScene(frametime);
+                break;
+            case SCENE_PIG:
+                renderPigScene(frametime);
+                break;
+            case SCENE_MINECRAFT:
+                renderMinecraftScene(frametime);
+                break;
+            case SCENE_ALL:
+                renderAllScene(frametime);
+                break;
+            default:
+                renderSimpleProg(frametime);
+                break;
+        }
+    }
 
-	void nextScene() {
-		switch (currentScene) {
-			case SCENE_START:
-				currentScene = SCENE_MILES;
-				setupMilesScene();
-				break;
-			case SCENE_MILES:
-				currentScene = SCENE_GWEN;
-				setupGwenScene();
-				break;
-			case SCENE_GWEN:
-				currentScene = SCENE_NOIR_BITE;
-				setupNoirBiteScene();
-				break;
-			case SCENE_NOIR_BITE:
-				currentScene = SCENE_NOIR_PORTAL;
-				setupNoirPortalScene();
-				break;
-			case SCENE_NOIR_PORTAL:
-				currentScene = SCENE_PIG;
-				setupPigScene();
-				break;
-			case SCENE_PIG:
-				currentScene = SCENE_MINECRAFT;
-				setupMinecraftScene();
-				break;
-			case SCENE_MINECRAFT:
-				currentScene = SCENE_ALL;
-				setupAllScene();
-				break;
-			case SCENE_ALL:
-				// last scene?
-				break;
-		}
-	}
+    void nextScene() {
+        switch (currentScene) {
+            case SCENE_START:
+                currentScene = SCENE_MILES;
+                setupMilesScene();
+                break;
+            case SCENE_MILES:
+                currentScene = SCENE_GWEN;
+                setupGwenScene();
+                break;
+            case SCENE_GWEN:
+                currentScene = SCENE_NOIR_BITE;
+                setupNoirBiteScene();
+                break;
+            case SCENE_NOIR_BITE:
+                currentScene = SCENE_NOIR_PORTAL;
+                setupNoirPortalScene();
+                break;
+            case SCENE_NOIR_PORTAL:
+                currentScene = SCENE_PIG;
+                setupPigScene();
+                break;
+            case SCENE_PIG:
+                currentScene = SCENE_MINECRAFT;
+                setupMinecraftScene();
+                break;
+            case SCENE_MINECRAFT:
+                currentScene = SCENE_ALL;
+                setupAllScene();
+                break;
+            case SCENE_ALL:
+                // last scene?
+                break;
+        }
+    }
     
     void renderSimpleProg(float frametime) {
         shared_ptr<Program> simple = shaderManager->getCurrentShader();
@@ -399,17 +415,17 @@ public:
             SetProjectionMatrix(simple);
             SetViewMatrix(simple);
 
-			// Demo of Bezier Spline
-			glm::vec3 position;
+            // Demo of Bezier Spline
+            glm::vec3 position;
 
-			if(!splinepath[0].isDone())
-			{
-				splinepath[0].update(frametime);
-				position = splinepath[0].getPosition();
-			} else {
-				splinepath[1].update(frametime);
-				position = splinepath[1].getPosition();
-			}
+            if(!splinepath[0].isDone())
+            {
+                splinepath[0].update(frametime);
+                position = splinepath[0].getPosition();
+            } else {
+                splinepath[1].update(frametime);
+                position = splinepath[1].getPosition();
+            }
 
             // draw mesh
             Model->pushMatrix();
@@ -431,22 +447,22 @@ public:
                 spider.draw(simple, Model);
             Model->popMatrix();
 
-			for (auto obj : physicsObjects) {
-				obj->draw(simple, Model);
-			}
+            for (auto obj : physicsObjects) {
+                obj->draw(simple, Model);
+            }
         simple->unbind();
     }
 
-	void updatePhysics(float dt) {
-		for (int i = 0; i < physicsObjects.size(); i++) {
-			for (int j = i + 1; j < physicsObjects.size(); j++) {
-				physicsObjects[i]->checkCollision(physicsObjects[j].get());
-			}
-		}
-		for (auto obj : physicsObjects) {
-			obj->update();
-		}
-	}
+    void updatePhysics(float dt) {
+        for (int i = 0; i < physicsObjects.size(); i++) {
+            for (int j = i + 1; j < physicsObjects.size(); j++) {
+                physicsObjects[i]->checkCollision(physicsObjects[j].get());
+            }
+        }
+        for (auto obj : physicsObjects) {
+            obj->update();
+        }
+    }
 
 	float milesRotation;
 	vec3 milesPortalScale;
@@ -512,13 +528,100 @@ public:
 		simple->unbind();
 	}
 
-	void setupGwenScene() {
+	vec3 gwenSpiderPosition = vec3(0, 0, -5);
+    vec3 gwenPortalScale;
+    vec3 gwenPortalPosition;
+    void setupGwenScene() {
+        gwenPortalScale = vec3(6, 6, 0.01);
+        gwenPortalPosition = vec3(-4, 1, -20);
+        
+        /*gwenSpiderSplinepath[0] = Spline(gwenPortalPosition, vec3(-2.5,5,-10), vec3(-1,2,-8), vec3(1,-2,-5), 5);
+        
+        gwenSpiderSplinepath = Spline( vec3(0,0,-10),
+                                       vec3(1,0,-10),
+                                       vec3(2,0,-10),
+                                       vec3(3,0,-10), 5);
+         */
+        gwenSpiderSplinepath = Spline(glm::vec3(-6,0,-5), glm::vec3(-1,-5,-5), glm::vec3(1, 5, -5), glm::vec3(2,0,-5), 5);
+		camera.eye = vec3(0);
+		camera.target = camera.eye + vec3(0, 0, -1);
+    }
 
-	}
+    void renderGwenScene(float frametime) {
+        static float sceneTime = 0.0f;
+        float gwenSpiderEmerges = 1.0f;
+        float portalDissappears = 4.0f;
+        float spiderLands = 4.0f;
+        float sceneFinished = 6.0f;
+        
+        bool drawGwenSpider = sceneTime > gwenSpiderEmerges;
+        bool drawPortal = sceneTime < portalDissappears;
+        
+        //cout << "SCENE TIME " << sceneTime << endl;
+        
+        vec3 spiderPath[2] = {gwenPortalPosition, vec3(2, -1, -5)};
+        
+        if(!gwenSpiderSplinepath.isDone())
+        {
+            //cout << "not done splining" << endl;
+            gwenSpiderSplinepath.update(frametime);
+            gwenSpiderPosition = splinepath[0].getPosition();
+        }
+        
+        shaderManager->setCurrentShader(SIMPLEPROG);
+        shared_ptr<Program> simple = shaderManager->getCurrentShader();
+        auto Model = make_shared<MatrixStack>();
+        
+        simple->bind();
+        SetProjectionMatrix(simple);
+        SetViewMatrix(simple);
+        
+        Model->pushMatrix();
+        Model->translate(vec3(0,-4,0));
+        Model->scale(vec3(200,.01,200));
+        glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+        sphere->draw(simple);
+        Model->popMatrix();
+        
+        if(drawPortal)
+        {
+            float randx = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX) * 2.0f) - 1;
+            float randy = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX) * 2.0f) - 1;
+            float randz = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX) * 2.0f) - 1;
 
-	void renderGwenScene(float frametime) {
-        nextScene();
-	}
+            
+            gwenPortalScale = vec3(gwenPortalScale.x + randx * frametime,
+                                   gwenPortalScale.y + randy * frametime,
+                                   gwenPortalScale.z + randz * frametime);
+            
+            Model->pushMatrix();
+            Model->translate(gwenPortalPosition);
+            Model->scale(gwenPortalScale * std::min((portalDissappears - sceneTime), 1.0f));
+            glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+            sphere->draw(simple);
+            Model->popMatrix();
+        }
+        
+        
+        if(drawGwenSpider)
+        {
+            vec3 position = mylerp(spiderPath[1], spiderPath[0], std::max(spiderLands - sceneTime, 0.0f));
+            
+            Model->pushMatrix();
+            //Model->translate(vec3(0, -1, -5));
+            Model->translate(position);
+            Model->scale(vec3(0.4,0.4,0.4));
+            Model->rotate(3.14159, vec3(0,1,0));
+            Model->rotate(-3.14159 / 2, vec3(1,0,0));
+            glUniformMatrix4fv(simple->getUniform("M"), 1, GL_FALSE, value_ptr(Model->topMatrix()));
+            gwen_spider->draw(simple);
+            Model->popMatrix();
+        }
+        
+        simple->unbind();
+        if(sceneTime > sceneFinished) nextScene();
+        else sceneTime += frametime;
+    }
 
 	Spline noirCameraPath[2];
 	Spline noirSpiderPath[2];
