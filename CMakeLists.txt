@@ -22,7 +22,7 @@ add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} ${HEADERS} ${GLSL})
 # Add GLFW
 # Get the GLFW environment variable.
 # There should be a CMakeLists.txt in the specified directory.
-set(GLFW_DIR "$ENV{GLFW_DIR}")
+set(GLFW_DIR "/Users/noahpaige/Desktop/csc/csc 572/glfw-3.3")
 if(GLFW_DIR)
   message(STATUS "GLFW environment variable found")
 
@@ -59,7 +59,7 @@ endif()
 # Add GLM
 # Get the GLM environment variable. Since GLM is a header-only library, we
 # just need to add it to the include directory.
-set(GLM_INCLUDE_DIR "$ENV{GLM_INCLUDE_DIR}")
+set(GLM_INCLUDE_DIR "/usr/local/Cellar/glm/0.9.9.5/include")
 if(GLM_INCLUDE_DIR)
   include_directories(${GLM_INCLUDE_DIR})
   message(STATUS "GLM environment variable found")
